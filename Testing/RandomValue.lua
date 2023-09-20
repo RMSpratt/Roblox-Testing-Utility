@@ -172,7 +172,7 @@ end
 ---@param indexWeightTable table The weight assigned to each index for selection
 ---@return any
 function RandomValueFuncs.GetWeightedArrayValueByIndex(arrayTable: {[number]: any}, indexWeightTable: table)
-    local selectedValue = 0
+    local selectedValue = nil
     local totalWeight = 0
     local weightSelectValue = randGenerator:NextNumber()
 
@@ -189,9 +189,8 @@ function RandomValueFuncs.GetWeightedArrayValueByIndex(arrayTable: {[number]: an
     for arrayIdx, idxWeight in ipairs(indexWeightTable) do
         totalWeight += tonumber(idxWeight)
 
-        if weightSelectValue < totalWeight then
+        if not selectedValue and weightSelectValue < totalWeight then
             selectedValue = arrayTable[arrayIdx]
-            break
         end
     end
 
@@ -214,7 +213,7 @@ end
 ---@param numRanges table The table of NumberRangeWeight objects for consideration.
 ---@return number
 function RandomValueFuncs.GetWeightedIntegerFromRangeTable(numRanges: NumberRangeWeightTable)
-    local generatedNum = 0
+    local generatedNum = nil
     local totalRangeWeight = 0
 
     local weightSelectValue = randGenerator:NextNumber()
@@ -227,9 +226,8 @@ function RandomValueFuncs.GetWeightedIntegerFromRangeTable(numRanges: NumberRang
     for _, weightedRange: NumberRangeWeight in ipairs(numRanges) do
         totalRangeWeight += tonumber(weightedRange.Weight) or 0
 
-        if weightSelectValue < totalRangeWeight then
+        if not generatedNum and weightSelectValue < totalRangeWeight then
             generatedNum = RandomValueFuncs.GetIntegerInRange(weightedRange.MinNum, weightedRange.MaxNum)
-            break
         end
     end
 
@@ -254,12 +252,12 @@ end
 ---@param minOne number
 ---@param maxOne number
 ---@param weightOne number
----@return any
+---@return number
 function RandomValueFuncs.GetWeightedIntegerFromRanges(
     minOne: number, maxOne: number, weightOne: number, ...)
     local rangeParams = {minOne, maxOne, weightOne, ...}
     local foundNum = false
-    local generatedNum = 0
+    local generatedNum = nil
     local totalRangeWeight = 0
 
     local weightSelectValue = randGenerator:NextNumber()
@@ -294,10 +292,9 @@ function RandomValueFuncs.GetWeightedIntegerFromRanges(
 
         totalRangeWeight += rangeWeight
 
-        if weightSelectValue < totalRangeWeight then
+        if not generatedNum and weightSelectValue < totalRangeWeight then
             generatedNum = randGenerator:NextInteger(rangeMin, rangeMax)
             foundNum = true
-            break
         end
     end
 
@@ -379,9 +376,8 @@ function RandomValueFuncs.GetWeightedTableValueByKey(keyValueTable: table, keyWe
     --The first threshold larger than the selected random value will be the key-value pair to select
     for keyWeightIndex, keyWeightStep in ipairs(valueWeightTable) do
 
-        if weightSelectedValue < keyWeightStep then
+        if selectedValue and weightSelectedValue < keyWeightStep then
             selectedValue = valueIndexToKeyNameMap[keyWeightIndex]
-            break
         end
     end
 
