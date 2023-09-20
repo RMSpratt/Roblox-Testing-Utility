@@ -1,25 +1,25 @@
 local RunService = game:GetService("RunService")
 
---Determines if messages and warnings are logged in studio
+--Sets whether or not messages will be output while testing in Studio.
 local DEBUG_OUTPUT_STUDIO = true
 
---Determines if messages and warnings are logged in live servers
+--Sets whether or not messages will be output while testing live.
 local DEBUG_OUTPUT_LIVE = false
 
---Sets a specific context for messages to be output
+--Filters the message output to only include those matching a specific context.
 local MSG_CONTEXT_FILTER = nil
 
---Sets a specific source script for messages to be output
+--Filters the message output to only include those genered by a specific source script
 local MSG_SOURCE_FILTER = nil
 
---Sets a specific context for warnings to be output
+--Filters the warning message output to only include those matching a specific context.
 local WARN_CONTEXT_FILTER = nil
 
---Sets a specific source script for messages to be output
+--Filters the warning message output to only include those genered by a specific source script
 local WARN_SOURCE_FILTER = nil
 
 local DebugOutput = {
-    Contexts = {}
+    Contexts = {}   --User-defined contexts for filtering messages and warnings
 }
 
 ---Initialization step. Gets the runtime context.
@@ -47,24 +47,24 @@ local function _init()
         print(`{script.Name}: Output active for current runtime context.`)
 
         if MSG_SOURCE_FILTER then
-            print(`\t> Only log messages from: {MSG_SOURCE_FILTER}`)
+            print(`\t> Only log messages from source: {MSG_SOURCE_FILTER}.`)
         end
 
         if MSG_CONTEXT_FILTER then
-            print(`\t> Only log messages with context: {MSG_CONTEXT_FILTER}`)
+            print(`\t> Only log messages with context: {MSG_CONTEXT_FILTER}.`)
         end
 
         if WARN_SOURCE_FILTER then
-            print(`\t> Only log warnings from: {WARN_SOURCE_FILTER}`)
+            print(`\t> Only log warnings from source: {WARN_SOURCE_FILTER}.`)
         end
 
         if WARN_CONTEXT_FILTER then
-            print(`\t> Only log warnings with context: {WARN_CONTEXT_FILTER}`)
+            print(`\t> Only log warnings with context: {WARN_CONTEXT_FILTER}.`)
         end
     end
 end
 
----Prints a message to output irregardless of the active context.
+---Print a message to output irregardless of the active context.
 ---@param debugMsg string
 ---@param msgSource string
 function DebugOutput.PrintDebug(debugMsg: string, msgSource: string, ...)
@@ -82,14 +82,14 @@ function DebugOutput.PrintDebug(debugMsg: string, msgSource: string, ...)
     end
 end
 
----Prints a message to output tied to a specific context.
+---Print a message to output tied to a specific debugging context.
 ---@param debugMsg string
 ---@param debugContext string
 ---@param msgSource string
 function DebugOutput.PrintDebugWithContext(debugMsg: string, debugContext: string, msgSource: string, ...)
     msgSource = msgSource or "Server"
 
-    if not debugContext then
+    if not debugContext and RunService:IsStudio() then
         warn(`{script.Name}: Missing context for passed message to print from {msgSource}.`)
         return
     end
@@ -109,7 +109,7 @@ function DebugOutput.PrintDebugWithContext(debugMsg: string, debugContext: strin
     end
 end
 
----Prints a warning to output irregardless of the active context.
+---Print a warning to output irregardless of the active context.
 ---@param debugWarn string
 ---@param warnSource string
 function DebugOutput.WarnDebug(debugWarn: string, warnSource: string, ...)
@@ -127,14 +127,14 @@ function DebugOutput.WarnDebug(debugWarn: string, warnSource: string, ...)
     end
 end
 
----Prints a warning to output tied to a specific context.
+---Print a warning to output tied to a specific debugging context.
 ---@param debugWarn string
 ---@param debugContext string
 ---@param warnSource string
 function DebugOutput.WarnDebugWithContext(debugWarn: string, debugContext: string, warnSource: string, ...)
     warnSource = warnSource or "Server"
 
-    if not debugContext then
+    if not debugContext and RunService:IsStudio() then
         warn(`{script.Name}: Missing context for passed warning to print from {warnSource}.`)
         return
     end

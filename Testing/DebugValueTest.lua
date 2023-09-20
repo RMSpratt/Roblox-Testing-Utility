@@ -1,10 +1,9 @@
-
----Validates a table of variables according to each's expected and actual types.
----@param variableTypeMoniker string
----@param variableTable table
+---Check a table of variables and evaluate each according to its expected and actual type.
+---@param variableContext string Descriptor of the type of variable being checked
+---@param variableTable table A table of {expected, actual} value pairs for validation.
 ---@return table
-local function _checkVariableTypes(variableTypeMoniker: string, variableTable: table)
-    local errTable = {}
+local function _checkVariableTypes(variableContext: string, variableTable: table)
+    local typeMismatches = {}
 
     for variableIdx, variableInfo in ipairs(variableTable) do
 
@@ -14,25 +13,37 @@ local function _checkVariableTypes(variableTypeMoniker: string, variableTable: t
             if actualType == "instance" and variableInfo[1] ~= actualType then
 
                 if not variableInfo[2]["ClassName"] then
-                    table.insert(errTable, `Invalid {variableTypeMoniker} var type #{variableIdx}. Ex: {variableInfo[1]} Actual: {actualType}.`)
+                    table.insert(
+                        typeMismatches,
+                        `Invalid {variableContext} var type #{variableIdx}. ` ..
+                        `Ex: {variableInfo[1]} Actual: {actualType}.`)
 
                 elseif string.lower(variableInfo[2].ClassName) ~= string.lower(variableInfo[1]) then
-                    table.insert(errTable, `Invalid {variableTypeMoniker} var type #{variableIdx}. Ex: {variableInfo[1]} Actual: {variableInfo[2].ClassName}.`)
+                    table.insert(
+                        typeMismatches,
+                        `Invalid {variableContext} var type #{variableIdx}. ` ..
+                        `Ex: {variableInfo[1]} Actual: {variableInfo[2].ClassName}.`)
                 end
 
             elseif actualType ~= string.lower(variableInfo[1]) then
-                    table.insert(errTable, `Invalid {variableTypeMoniker} var type #{variableIdx}. Ex: {variableInfo[1]} Actual: {actualType}.`)
+                table.insert(
+                    typeMismatches,
+                    `Invalid {variableContext} var type #{variableIdx}.` ..
+                    `Ex: {variableInfo[1]} Actual: {actualType}.`)
             end
+
+        --The actual value of the variable provided is nil
         else
-            table.insert(errTable, `Missing variable {variableTypeMoniker}_{variableIdx}.`)
+            table.insert(typeMismatches, `Missing variable {variableContext}_{variableIdx}.`)
         end
     end
 
-    return errTable
+    return typeMismatches
 end
 
+--Module provides functions for comparing variables for their expected type against their actual type.
 local DebugValueTest = {
-    Types = {
+    DataTypes = {
         Character = "character",
         Folder = "folder",
         Function = "function",
@@ -48,70 +59,83 @@ local DebugValueTest = {
     }
 }
 
----Checks the passed Instance for a set of expected attributes.
+---Check the passed Instance for a set of expected attributes.
 ---@param instanceToCheck Instance
----@param attribTable table
-function DebugValueTest.CheckInstanceAttributes(instanceToCheck: Instance, attribTable: table)
-    local errTable = {}
+---@param expectedAttributes table
+function DebugValueTest.CheckInstanceAttributes(instanceToCheck: Instance, expectedAttributes: table)
+    local violationTable = {}
 
-    for attribName, attribType in pairs(attribTable) do
+    for attribName, attribType in pairs(expectedAttributes) do
         local actualAttrib = instanceToCheck:GetAttribute(attribName)
 
         if actualAttrib then
 
             if not typeof(actualAttrib) == attribType then
-                table.insert(errTable, `Unexpected value on {instanceToCheck.Name} for attribute {attribName}.`)
+                table.insert(
+                    violationTable,
+                    `Unexpected value on {instanceToCheck.Name} for attribute {attribName}.`)
             end
 
         else
-            table.insert(errTable, `Missing attribute {attribName} on {instanceToCheck.Name}`)
+            table.insert(violationTable, `Missing attribute {attribName} on {instanceToCheck.Name}.`)
         end
     end
 
-    return errTable
+    return violationTable
 end
 
----Evaluates each {type, value} pair to see if the value matches the expected type (string).
+---Evaluate each {type, value} pair to see if the value is of the expected type.
+---Types are expected as strings.
 ---@param localTable table
 ---@return table
 function DebugValueTest.CheckLocalTypes(localTable: {[string]: any})
     return _checkVariableTypes("local", localTable)
 end
 
----Evaluates each {type, value} pair to see if the value matches the expected type (string).
----@param paramTable table
+---Evaluate each {type, value} pair to see if the value matches the expected type.
+---Types are expected as strings.
+---@param argumentTable table
 ---@return table
-function DebugValueTest.CheckParamTypes(paramTable: {[string]: any})
-   return _checkVariableTypes("param", paramTable)
+function DebugValueTest.CheckArgumentTypes(argumentTable: {[string]: any})
+   return _checkVariableTypes("argument", argumentTable)
 end
 
----Checks if the passed value exists within the lookup table provided.
----@param lookupValue any
----@param lookupTableName string
+---Look for the key lookupKey in lookupTable and return true if it is contained therewithin.
+---@param lookupKey any
 ---@param lookupTable table
+---@param lookupTableName string
 ---@return table
-function DebugValueTest.CheckValueInLookup(lookupValue: any, lookupTableName: string, lookupTable: table)
+function DebugValueTest.CheckValueInLookup(lookupKey: any, lookupTable: table, lookupTableName: string)
 
-    if not lookupTable[lookupValue] then
-        return {`Missing expected value {lookupValue} within the lookup table {lookupTableName}.`}
+    if not lookupKey then
+        error("Missing argument #1 to CheckValueInLookup.")
+
+    elseif not lookupTable then
+        error("Missing argument #2. Table expected to CheckValueInLookup.")
+
+    elseif not type(lookupTable) == "table" then
+        error(`Invalid argument #2. Table expected. Got {type(lookupTable)}`)
     end
 
-    return {}
+    lookupTableName = tostring(lookupTableName) or "table"
+
+    return lookupTable[lookupKey] ~= nil
 end
 
 ---Evaluates each {type, value} pair to see if the value matches the expected type (string).
----@param moniker string
+---@param variableContext string
 ---@param valueTable table
 ---@return table
-function DebugValueTest.CheckVariableTypes(moniker: string, valueTable: {[string]: any})
+function DebugValueTest.CheckVariableTypes(variableContext: string, valueTable: {[number]: any})
 
-    if not moniker then
-        moniker = "variable"
+    if not variableContext then
+        variableContext = "variable"
     end
-    return _checkVariableTypes(moniker, valueTable)
+
+    return _checkVariableTypes(variableContext, valueTable)
 end
 
----Returns a formatted warning message for an Instance missing a required attribute.
+---Return a formatted warning message for an Instance missing a required attribute.
 ---@param instanceName string
 ---@param expectedAttrib string
 ---@return string
@@ -119,7 +143,7 @@ function DebugValueTest.WarnMissingAttrib(instanceName: string, expectedAttrib: 
     return (`Instance {instanceName} missing expected attribute {expectedAttrib}.`)
 end
 
----Returns a formatted warning message for a missing Instance.
+---Return a formatted warning message for a missing Instance.
 ---@param searchName string
 ---@param parentName string
 ---@return string
@@ -127,7 +151,7 @@ function DebugValueTest.WarnMissingInstance(searchName: string, parentName: stri
     return (`Parent {parentName} is missing expected child {searchName}.`)
 end
 
----Returns a formatted warning message for an unexpected variable type.
+---Return a formatted warning message for an unexpected variable type.
 ---@param variableName string
 ---@param actualType string
 ---@param expectedType string
