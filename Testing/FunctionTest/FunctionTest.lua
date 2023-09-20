@@ -14,8 +14,7 @@ export type TestReturnValue = {
 
 --Describes an expected mutation to an argument used by a function being tested.
 export type TestArgumentMutation = {
-    ParamIdx: number,
-    ArgumentType: string,
+    ArgumentIdx: number,
     ExpectedValue: any,
     ComparisonInfo: ComparisonInfo
 }
@@ -23,7 +22,7 @@ export type TestArgumentMutation = {
 --Holds the set of testable behaviours or features of the functions provided
 --More options can be added as needed
 local TESTABLE_BEHAVIOURS = {
-    ParamMutationCheck = 1,
+    ArgumentMutationCheck = 1,
     ReturnValueCheck = 2
 }
 
@@ -37,7 +36,9 @@ local WARNING_LOD_OPTIONS = {
 
 --Module holds a set of methods for running and validating the effects of functions under test.
 local FunctionTest = {
-    MutationComparisonMethods = {
+
+    --The methods available for defining equality of two objects.
+    ComparisonMethods = {
         Direct = "Direct",          --Comapre the actual and expected argument values directly (==)
         KeyTable = "KeyTable",      --Compare the actual and expected argument values by keys
         Function = "Function"       --Compare the actual and expected argument values by function
@@ -64,19 +65,19 @@ end
 local function _getMismatchNumReturnValuesMessage(
     expectedNumValues: number, actualNumValues: number, testContext: string, testNum: number)
 
-    return string.format("%s - %s WRONG_NUM_RETURN_VALUES: Expected - %d Actual - %d.",
-        testContext, testNum, expectedNumValues, actualNumValues)
-
+    return `{testContext} - {testNum} WRONG_NUM_RETURN_VALUES: ` ..
+        `Expected - {expectedNumValues} Actual - {actualNumValues}.`
 end
 
 ---Create a formatted message for misuse of a FunctionTest Module function.
 ---@param misuseMsg string
 ---@param functionName string
----@param testContext string
----@param testNum number
+---@param testContext string (Optional) The context under which this method was invoked.
+---@param testNum any (Optional) The test number that generated this error.
 ---@return string
 local function _getModuleMisuseMessage(
     misuseMsg: string, functionName: string, testContext: string, testNum: number)
+
     return `{testContext} - {testNum} BAD_FUNCTION_CALL: {functionName}: {misuseMsg}`
 end
 
@@ -88,9 +89,8 @@ end
 local function _getUnexpectedClassNameMessage(expectedClassName: string, actualClassName: string,
     testContext: string, testNum: number)
 
-    return string.format(
-        "%s - %d BAD_CLASS_NAME: Expected - %s Actual - %s",
-        testContext, testNum, expectedClassName, actualClassName)
+    return `{testContext} - {testNum} BAD_CLASS_NAME: ` ..
+        `Expected - {expectedClassName} Actual - {actualClassName}`
 end
 
 ---Create a formatted message for a variable type mismatch.
@@ -162,7 +162,7 @@ local function compareExpectedValue(
             "Missing argument #3", "compareExpectedValue", testContext, testNum))
     end
 
-    if comparisonInfo.ComparisonMethod == FunctionTest.MutationComparisonMethods.Function then
+    if comparisonInfo.ComparisonMethod == FunctionTest.ComparisonMethods.Function then
 
         if not comparisonInfo.ComparisonFunction then
             error(_getModuleMisuseMessage(
@@ -175,7 +175,7 @@ local function compareExpectedValue(
                 expectedValue, actualValue, testContext, testNum)
         end
 
-    elseif comparisonInfo.ComparisonMethod == FunctionTest.MutationComparisonMethods.KeyTable then
+    elseif comparisonInfo.ComparisonMethod == FunctionTest.ComparisonMethods.KeyTable then
         local didKeyCheckPass = true
 
         if type(expectedValue) ~= "table" then
@@ -218,7 +218,7 @@ local FunctionTestFuncs = {
         Model = "Model",
     },
 
-    MutationComparisonMethods = FunctionTest.MutationComparisonMethods,
+    ComparisonMethods = FunctionTest.ComparisonMethods,
 
     TestTypes = TESTABLE_BEHAVIOURS,
 
@@ -234,6 +234,125 @@ local FunctionTestFuncs = {
         Vector3 = "Vector3"
     },
 }
+
+---Create and return a table formatted as a TestArgumentMutation object. Optional utility function.
+---@param argIdx number
+---@param expectedValue any
+---@param comparisonMethod string
+---@param comparisonFunction function
+---@return table
+function FunctionTestFuncs.CreateTestArgumentMutationObject(argIdx: number, expectedValue: any,
+    comparisonMethod: string, comparisonFunction: (any, any) -> boolean)
+
+    if not argIdx then
+        error(`Missing argument #1. Number expected.`)
+    end
+
+    if type(argIdx) ~= "number" then
+        error(`Invalid argument #1. String expected. Got {type(argIdx)}`)
+    end
+
+    if comparisonMethod then
+
+        if type(comparisonMethod) ~= "string" then
+
+            if comparisonMethod == FunctionTest.ComparisonMethods.Function then
+
+                if comparisonFunction then
+
+                    if not type(comparisonFunction) == "function" then
+                        error(`Invalid argument #4. Function expected. Got {type(comparisonFunction)}.`)
+                    end
+
+                else
+                    error(
+                        `Missing argument #4 when argument #4 is set to ` ..
+                        `{FunctionTest.ComparisonMethods.Function}.`)
+                end
+            end
+        else
+            error(`Invalid argument #3. String expected. Got {type(comparisonMethod)}.`)
+        end
+
+    else
+        error(`Missing argument #3. String expected.`)
+    end
+
+    return {
+        ArgumentIdx = argIdx,
+        ExpectedValue = expectedValue,
+        ComparisonInfo = {
+            ComparisonMethod = comparisonMethod,
+            ComparisonFunction = comparisonFunction
+        }
+    }
+end
+
+---Create and return a table formatted as a TestReturnValue object. Optional utility function.
+---@param expectedType string
+---@param expectedValue any
+---@param expectedClassName string
+---@param comparisonMethod string
+---@param comparisonFunction function
+---@return table
+function FunctionTestFuncs.CreateTestReturnValueObject(
+    expectedType: string, expectedValue: any, expectedClassName: string,
+    comparisonMethod: string, comparisonFunction: (any, any) -> boolean)
+
+    if not expectedType then
+        error(`Missing argument #1. String expected.`)
+    end
+
+    if type(expectedType) ~= "string" then
+        error(`Invalid argument #1. String expected. Got {type(expectedType)}`)
+    end
+
+    if not expectedClassName and type(expectedValue) ~= type(expectedType) then
+        error(`Argument #2 is not same basic type as argument #1 and no className provided.` ..
+        `Evaluation with this ReturnValueObject will always be false.`)
+    end
+
+    if expectedClassName and type(expectedClassName) ~= "string" then
+        error(`Invalid argument #3. String expected. Got {type(expectedClassName)}.`)
+    end
+
+    if comparisonMethod then
+
+        if type(comparisonMethod) ~= "string" then
+
+            if comparisonMethod == FunctionTest.ComparisonMethods.Function then
+
+                if comparisonFunction then
+
+                    if not type(comparisonFunction) == "function" then
+                        error(`Invalid argument #5. Function expected. Got {type(comparisonFunction)}.`)
+                    end
+
+                else
+                    error(
+                        `Missing argument #5 when argument #4 is set to ` ..
+                        `{FunctionTest.ComparisonMethods.Function}.`)
+                end
+            end
+        else
+            error(`Invalid argument #4. String expected. Got {type(comparisonMethod)}.`)
+        end
+
+    else
+        error(`Missing argument #4. String expected.`)
+    end
+
+    --Return a table formatted as a TestReturnValue object
+    return {
+        ExpectedType = expectedType,
+        ExpectedValue = expectedValue,
+        ExpectedClassName = expectedClassName,
+        ComparisonInfo = {
+            ComparisonMethod = comparisonMethod,
+            ComparisonFunction = comparisonFunction
+        }
+    }
+end
 
 ---Run the passed function with any arguments provided and evaluate the resulting argument mutations against those expected.
 ---@param funcToCall function The function to be invoked and tested
@@ -291,36 +410,14 @@ function FunctionTestFuncs.RunFunctionMutationTest(funcToCall: (any) -> {},
             ))
         end
 
-        if not mutationInfo.ArgumentType then
-            error(_getModuleMisuseMessage(
-                "Invalid argument #2. Sub-table is missing ArgumentType key",
-                "RunFunctionMutationTest", testContext, testNum
-            ))
-        end
+        didTestPass, testViolation = compareExpectedValue(
+            mutationInfo.ExpectedValue, funcArgs[mutationInfo.ArgumentIdx],
+            mutationInfo.ComparisonInfo, testContext, testNum)
 
-        if type(mutationInfo.ArgumentType) ~= "string" then
-            error(_getModuleMisuseMessage(
-                "Invalid argument #2. Sub-table has invalid ArgumentType key",
-                "RunFunctionMutationTest", testContext, testNum
-            ))
-        end
-
-        --The actual argument value must have the same basic type as the expected value
-        if string.lower(mutationInfo.ArgumentType) == string.lower(typeof(funcArgs[mutationInfo.ParamIdx])) then
-            didTestPass, testViolation = compareExpectedValue(
-                mutationInfo.ExpectedValue, funcArgs[mutationInfo.ParamIdx],
-                mutationInfo.ComparisonInfo, testContext, testNum)
-
-            if not didTestPass then
-                break
-            end
-
-        else
-            didTestPass = false
-            testViolation = _getUnexpectedTypeMessage(
-                mutationInfo.ExpectedValue, funcArgs[mutationInfo.ParamIdx], testContext, testNum)
+        if not didTestPass then
             break
         end
+
     end
 
     return didTestPass, testViolation
