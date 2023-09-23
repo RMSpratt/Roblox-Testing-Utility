@@ -150,7 +150,7 @@ return values.
 
 ### Example
 The code snippet below illustrates the general flow of how a TestSuite is created and run.
-A full example can be found in the [Demonstrations folder](Demonstrations.README.md)
+A full example can be found in the [Demonstrations folder](../Demonstrations/README.md)
 
 ```lua
 local FunctionTestMod = require(script.Parent.FunctionTest)
