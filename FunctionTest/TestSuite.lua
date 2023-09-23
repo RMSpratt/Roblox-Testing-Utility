@@ -98,6 +98,12 @@ function TestSuite:AddReturnValueTest(
     })
 end
 
+---Get and return the TestResults table from the last run of the TestSuite if they exist.
+---@return table
+function TestSuite:GetResults()
+    return self.TestResults
+end
+
 ---Log the Test Suite's previous run results.
 function TestSuite:LogResults()
 
