@@ -18,11 +18,13 @@ More Info: [RandomValue](./RandomValue)
 This sub-directory contains three ModuleScripts with functions to test function behaviour
 according to their return values and mutations to input parameters.
 
-More Info: [RuntimeDebug](./FunctionTest)
+More Info: [FunctionTest](./FunctionTest)
 
 ## Subdirectory: Demonstrations
 This sub-directory contains ModuleScripts with examples of how the other testing modules
 should be used. Currently, examples for FunctionTest and RandomValue are included.
+
+More Info: [Demonstrations](./Demonstrations)
 
 ## Subdirectory: RuntimeDebug
 This sub-directory contains ModuleScripts with functions designed for in-studio and/or
