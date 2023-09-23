@@ -136,7 +136,7 @@ end
 ---@param expectedValue any
 ---@param actualValue any
 ---@param comparisonInfo table Describes how to compare the two values passed.
----@param testContext string
+---@param testContext string The testing context
 ---@param testNum number
 ---@return boolean
 ---@return string
@@ -183,18 +183,26 @@ local function compareExpectedValue(
                 "Cannot Compare expectedValue by KeyTable", "compareExpectedValue", testContext, testNum))
         end
 
-        for expectedKeyName, expectedKeyValue in expectedValue do
+        if type(actualValue) == "table" then
 
-            if not actualValue[expectedKeyName] or actualValue[expectedKeyName] ~= expectedKeyValue then
-                didKeyCheckPass = false
-                valueMatchViolation = _getUnexpectedKeyValueMessage(
-                    expectedKeyName, expectedKeyValue, actualValue[expectedKeyName], testContext, testNum)
-                break
+            for expectedKeyName, expectedKeyValue in expectedValue do
+
+                if not actualValue[expectedKeyName] or actualValue[expectedKeyName] ~= expectedKeyValue then
+                    didKeyCheckPass = false
+                    valueMatchViolation = _getUnexpectedKeyValueMessage(
+                        expectedKeyName, expectedKeyValue, actualValue[expectedKeyName], testContext, testNum)
+                    break
+                end
             end
-        end
 
-        if not didKeyCheckPass then
+            if not didKeyCheckPass then
+                valuesMatch = false
+            end
+
+        else
             valuesMatch = false
+            valueMatchViolation = _getUnexpectedTypeMessage(
+            expectedValue, actualValue, testContext, testNum)
         end
 
     else
@@ -235,11 +243,11 @@ local FunctionTestFuncs = {
     },
 }
 
----Create and return a table formatted as a TestArgumentMutation object. Optional utility function.
----@param argIdx number
----@param expectedValue any
----@param comparisonMethod string
----@param comparisonFunction function
+---Create and return a table formatted as a TestArgumentMutation object.
+---@param argIdx number The position of the argument as a function input argument.
+---@param expectedValue any The expected value to be returned.
+---@param comparisonMethod string Describes how the value can be compared. One of ComparisonMethods.
+---@param comparisonFunction function The function used to compare expectedValue to another value.
 ---@return table
 function FunctionTestFuncs.CreateTestArgumentMutationObject(argIdx: number, expectedValue: any,
     comparisonMethod: string, comparisonFunction: (any, any) -> boolean)
@@ -254,13 +262,13 @@ function FunctionTestFuncs.CreateTestArgumentMutationObject(argIdx: number, expe
 
     if comparisonMethod then
 
-        if type(comparisonMethod) ~= "string" then
+        if type(comparisonMethod) == "string" then
 
             if comparisonMethod == FunctionTest.ComparisonMethods.Function then
 
                 if comparisonFunction then
 
-                    if not type(comparisonFunction) == "function" then
+                    if type(comparisonFunction) ~= "function" then
                         error(`Invalid argument #4. Function expected. Got {type(comparisonFunction)}.`)
                     end
 
@@ -288,12 +296,12 @@ function FunctionTestFuncs.CreateTestArgumentMutationObject(argIdx: number, expe
     }
 end
 
----Create and return a table formatted as a TestReturnValue object. Optional utility function.
----@param expectedType string
----@param expectedValue any
----@param expectedClassName string
----@param comparisonMethod string
----@param comparisonFunction function
+---Create and return a table formatted as a TestReturnValue object.
+---@param expectedType string The expected DataType of the value to be returned.
+---@param expectedValue any The expected value to be returned.
+---@param expectedClassName string The expected ClassName of the value to be returned.
+---@param comparisonMethod string Describes how the value can be compared. One of ComparisonMethods.
+---@param comparisonFunction function The function used to compare expectedValue to another value.
 ---@return table
 function FunctionTestFuncs.CreateTestReturnValueObject(
     expectedType: string, expectedValue: any, expectedClassName: string,
@@ -307,9 +315,11 @@ function FunctionTestFuncs.CreateTestReturnValueObject(
         error(`Invalid argument #1. String expected. Got {type(expectedType)}`)
     end
 
-    if not expectedClassName and type(expectedValue) ~= type(expectedType) then
+    expectedType = string.lower(expectedType)
+
+    if not expectedClassName and string.lower(type(expectedValue)) ~= expectedType then
         error(`Argument #2 is not same basic type as argument #1 and no className provided.` ..
-        `Evaluation with this ReturnValueObject will always be false.`)
+            `Evaluation with this ReturnValueObject will always be false.`)
     end
 
     if expectedClassName and type(expectedClassName) ~= "string" then
@@ -318,13 +328,13 @@ function FunctionTestFuncs.CreateTestReturnValueObject(
 
     if comparisonMethod then
 
-        if type(comparisonMethod) ~= "string" then
+        if type(comparisonMethod) == "string" then
 
             if comparisonMethod == FunctionTest.ComparisonMethods.Function then
 
                 if comparisonFunction then
 
-                    if not type(comparisonFunction) == "function" then
+                    if type(comparisonFunction) ~= "function" then
                         error(`Invalid argument #5. Function expected. Got {type(comparisonFunction)}.`)
                     end
 
@@ -355,11 +365,11 @@ function FunctionTestFuncs.CreateTestReturnValueObject(
 end
 
 ---Run the passed function with any arguments provided and evaluate the resulting argument mutations against those expected.
----@param funcToCall function The function to be invoked and tested
----@param expectedMutations table A list of TestArgumentMutation table objects
----@param funcArgs table The arguments to invoke with the function (optional)
----@param testContext string
----@param testNum number
+---@param funcToCall function The function to be invoked for testing.
+---@param expectedMutations table A list of TestArgumentMutation table objects.
+---@param funcArgs table The arguments to invoke with the function. (optional)
+---@param testContext string The testing context.
+---@param testNum number The test id or index.
 ---@return boolean
 ---@return string
 function FunctionTestFuncs.RunFunctionMutationTest(funcToCall: (any) -> {},
@@ -401,6 +411,9 @@ function FunctionTestFuncs.RunFunctionMutationTest(funcToCall: (any) -> {},
 
     funcToCall(table.unpack(funcArgs))
 
+
+    print(funcArgs)
+
     for _, mutationInfo: TestArgumentMutation in expectedMutations do
 
         if type(mutationInfo) ~= "table" then
@@ -424,10 +437,10 @@ function FunctionTestFuncs.RunFunctionMutationTest(funcToCall: (any) -> {},
 end
 
 ---Run the passed function with any arguments provided and evaluate the resulting return values against those expected.
----@param funcToCall function
----@param expectedReturnValues table  A list of ExpectedReturnValue table objects
----@param funcArgs table The arguments to invoke with the function (optional)
----@param testContext string
+---@param funcToCall function The function to be invoked for testing.
+---@param expectedReturnValues table  A list of ExpectedReturnValue table objects.
+---@param funcArgs table The arguments to invoke with the function. (optional)
+---@param testContext string The testing context.
 ---@param testNum number The test id or index.
 ---@return boolean
 ---@return string
@@ -526,11 +539,11 @@ end
 
 ---Run the passed function with any arguments provided and evaluate the resulting argument mutations against those expected.
 ---xpcall is used to catch errors thrown by the function to test
----@param funcToCall function The function to call
+---@param funcToCall function The function to be invoked for testing.
 ---@param expectedMutations table A list of ParamMutation descriptions for the given inputs
 ---@param funcArgs table The argumnts to the testing function
----@param testContext string The testing context
----@param testNum number The test id or index
+---@param testContext string The testing context.
+---@param testNum number The test id or index.
 ---@return boolean
 ---@return string
 function FunctionTestFuncs.RunFunctionMutationTestSafe(funcToCall: (any) -> {}, expectedMutations: table,
@@ -561,12 +574,12 @@ function FunctionTestFuncs.RunFunctionMutationTestSafe(funcToCall: (any) -> {}, 
 end
 
 ---Run the passed function with any arguments provided and evaluate the resulting return values against those expected.
----xpcall is used to catch errors thrown by the function to test
----@param funcToCall function The function to call
----@param expectedReturnInfo table A list of ExpectedReturnValue descriptions for the given inputs
----@param funcArgs table The argumnts to the testing function
----@param testContext string The testing context
----@param testNum number The test id or index
+---xpcall is used to catch errors thrown by the function to test.
+---@param funcToCall function The function to be invoked for testing.
+---@param expectedReturnInfo table A list of ExpectedReturnValue descriptions for the given inputs.
+---@param funcArgs table The argumnts to the testing function.
+---@param testContext string The testing context.
+---@param testNum number The test id or index.
 ---@return boolean
 ---@return string
 function FunctionTestFuncs.RunFunctionReturnTestSafe(funcToCall: (any) -> {}, expectedReturnInfo: table,

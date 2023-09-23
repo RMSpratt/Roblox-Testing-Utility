@@ -6,27 +6,29 @@ type TestResults = {
     TestViolations: table
 }
 
+---Class-like Table for managing a collection of functions to be run and tests under a single suite name.
 local TestSuite = {}
 TestSuite.__index = TestSuite
 
----Class-like Table for managing a collection of functions to be run and tests under a single suite name.
+---Create a new Instance of the TestSuite table with Index pointing to the TestSuite base table.
 ---@param suiteName string
 ---@return table
 function TestSuite.New(suiteName: string)
     local self = {
-        SuiteName = tostring(suiteName),
-        Tests = {}
     }
 
     setmetatable(self, TestSuite)
+
+    self.SuiteName = tostring(suiteName)
+    self.Tests = {}
     return self
 end
 
 ---Add a TestFunction to the TestSuite for evaluating mutations to one or more input arguments.
----@param funcToCall function
----@param expectedArgumentMutations table
----@param funcArgs table
----@param usePCall boolean
+---@param funcToCall function The function to be invoked and tested.
+---@param expectedArgumentMutations table The full set of TestArgumentMutation objects for testing.
+---@param funcArgs table The arguments to be passed to the function to be invoked and tested.
+---@param usePCall boolean Describes whether or not to invoke the function with xpcall.
 function TestSuite:AddArgumentMutationTest(
     funcToCall: (any) -> any, expectedArgumentMutations: table, funcArgs: table, usePCall: boolean)
 
@@ -51,19 +53,19 @@ function TestSuite:AddArgumentMutationTest(
     end
 
     table.insert(self.Tests, {
-        ExpectedParamMutations = expectedArgumentMutations,
-        FunctionParameters = funcArgs,
+        ExpectedArgumentMutations = expectedArgumentMutations,
+        FunctionArguments = funcArgs,
         FunctionToRun = funcToCall,
         RunWithPCall = usePCall,
-        TestMethod = FunctionTestMod.TestTypes.ReturnValueCheck,
+        TestMethod = FunctionTestMod.TestTypes.ArgumentMutationCheck,
     })
 end
 
 ---Add a TestFunction to the TestSuite for evaluating a function's return values.
----@param funcToCall function
----@param expectedReturnValues table
----@param funcArgs table
----@param usePCall boolean
+---@param funcToCall function The function to be invoked and tested.
+---@param expectedReturnValues table The full set of TestReturnValue objects for testing.
+---@param funcArgs table The arguments to be passed to the function to be invoked and tested.
+---@param usePCall boolean Describes whether or not to invoke the function with xpcall.
 function TestSuite:AddReturnValueTest(
     funcToCall: (any) -> any, expectedReturnValues: table, funcArgs: table, usePCall: boolean)
 
@@ -131,31 +133,31 @@ function TestSuite:Run()
                 didTestPass, testViolation = FunctionTestMod.RunFunctionReturnTestSafe(
                     functionTest.FunctionToRun,
                     functionTest.ExpectedReturnValues,
-                    functionTest.FunctionParameters,
+                    functionTest.FunctionArguments,
                     self.SuiteName,
                     testNum)
             else
                 didTestPass, testViolation = FunctionTestMod.RunFunctionReturnTest(
                     functionTest.FunctionToRun,
                     functionTest.ExpectedReturnValues,
-                    functionTest.FunctionParameters,
+                    functionTest.FunctionArguments,
                     self.SuiteName,
                     testNum)
             end
-        else
 
+        else
             if functionTest.RunWithPCall then
                 didTestPass, testViolation = FunctionTestMod.RunFunctionMutationTestSafe(
                     functionTest.FunctionToRun,
-                    functionTest.ExpectedParamMutations,
-                    functionTest.FunctionParameters,
+                    functionTest.ExpectedArgumentMutations,
+                    functionTest.FunctionArguments,
                     self.SuiteName,
                     testNum)
             else
                 didTestPass, testViolation = FunctionTestMod.RunFunctionMutationTest(
                     functionTest.FunctionToRun,
-                    functionTest.ExpectedParamMutations,
-                    functionTest.FunctionParameters,
+                    functionTest.ExpectedArgumentMutations,
+                    functionTest.FunctionArguments,
                     self.SuiteName,
                     testNum)
             end

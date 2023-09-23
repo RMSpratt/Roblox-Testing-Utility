@@ -17,8 +17,8 @@ local FunctionTestRunner = {
 }
 
 ---Run a suite of tests through the FunctionTest Module and return the results.
----@param testsToRun table
----@param suiteName string
+---@param testsToRun table The suite of tests to be run and evaluated.
+---@param suiteName string The contextual name given to the suite of tests.
 function FunctionTestRunner.RunTestSuite(testsToRun: {[number]: TestInfo}, suiteName: string)
     local numTestsPassed = 0
     local testViolations = {}
