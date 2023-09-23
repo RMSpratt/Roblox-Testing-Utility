@@ -63,7 +63,7 @@ with the required fields provided.
 required fields provided.
 
 ### Examples
-A few examples of FunctionTest's methods can be found in Demonstrations: [Demonstration Directory](../Demonstrations/README.md).
+A few examples of FunctionTest's methods can be found in Demonstrations: [Demonstration Directory](../Demonstrations).
 
 A simplified template example is presented below.
 ```lua
@@ -150,7 +150,7 @@ return values.
 
 ### Example
 The code snippet below illustrates the general flow of how a TestSuite is created and run.
-A full example can be found in the [Demonstrations folder](../Demonstrations/README.md)
+A full example can be found in the [Demonstrations folder](../Demonstrations)
 
 ```lua
 local FunctionTestMod = require(script.Parent.FunctionTest)
