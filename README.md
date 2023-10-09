@@ -31,3 +31,8 @@ This sub-directory contains ModuleScripts with functions designed for in-studio 
 in-game runtime debugging.
 
 More Info: [RuntimeDebug](./RuntimeDebug/)
+
+## Subdirectory: TestGeneration
+This sub-directory contains ModuleScripts for use in automated test generation techniques.
+
+More Info: [TestGeneration](./TestGeneration)
